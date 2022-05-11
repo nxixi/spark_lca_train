@@ -17,8 +17,8 @@ class LcaTrain(AbstractAbnormalDetect):
 		self.train = Train.from_map(config)
 		self.config = config
 
-	def score(self, value_his, acci_dict, total_count, template_id, reg={}):   # TODO
-		result = self.train.run(value_his, acci_dict, total_count, template_id, reg)
+	def transform(self, value_his):   # TODO
+		result = self.train.run(value_his)
 		return result
 
 	def fields(self):   # TODO

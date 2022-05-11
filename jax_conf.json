@@ -2,13 +2,13 @@
   {
     "algClassName": "LcaTrain",
     "algModuleName": "spark_lca_train.LcaTrain",
-    "display":"日志量异常检测训练",
-    "description":"日志量异常检测特征训练",
+    "display":"LcaTrain算子",
+    "description":"日志量异常检测特征训练算子",
     "algName": "LcaTrain",
     "type": "batch",
     "algProcessType": "batch",
     "algDataType": "METRIC",
-    "algTrainType": "ONLINE",
+    "algTrainType": "OFFLINE",
     "algDetectType": "DETECT",
     "algVersion": "2.1.0",
     "algAlias": "",
@@ -25,12 +25,18 @@
         "defaultValue": 5
       },
       {
-        "name": "is_mode_all",
-        "label": "是否训练所有模板",
-        "description": "是否训练所有模板，否则训练一个模板，默认true。",
-        "type": "bool",
-        "optional": "true",
-        "defaultValue": "true"
+        "name": "customAccidentalParams",
+        "label": "自定义偶发配置",
+        "description": "自定义偶发配置，{id: {'acci_day': xx, 'acci_count_thresh': xx, 'acci_occu_thresh': xx}}。",
+        "type": "dict",
+        "optional": "false"
+      },
+      {
+        "name": "generalAccidentalParams",
+        "label": "通用偶发配置",
+        "description": "通用偶发配置，{'acci_day': xx, 'acci_count_thresh': xx, 'acci_occu_thresh': xx}。",
+        "type": "dict",
+        "optional": "false"
       },
       {
         "name": "rolling_hours",
@@ -63,22 +69,6 @@
         "type": "float",
         "optional": "true",
         "defaultValue": 0.5
-      },
-      {
-        "name": "acci_occu_thresh",
-        "label": "偶发判断百分比阈值",
-        "description": "偶发判断百分比阈值，默认2（偶发的一个条件：某模板几天内发生数量小于所有模板发生总量的百分之acci_occu_thresh）。",
-        "type": "float",
-        "optional": "true",
-        "defaultValue": 2
-      },
-      {
-        "name": "acci_count_thresh",
-        "label": "偶发判断固定阈值",
-        "description": "偶发判断固定阈值，默认10（偶发的一个条件：某模板几天内发生数量小于acci_count_thresh）。",
-        "type": "int",
-        "optional": "true",
-        "defaultValue": 10
       }
     ]
   }
