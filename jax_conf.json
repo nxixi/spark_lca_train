@@ -10,32 +10,32 @@
     "algDataType": "METRIC",
     "algTrainType": "OFFLINE",
     "algDetectType": "DETECT",
-    "algVersion": "2.1.0",
+    "algVersion": "2.0.0",
     "algAlias": "",
     "algTrainJob": "",
     "algTrainDataLength": "",
 
     "parameters": [
       {
-        "name": "agg",
+        "name": "windowGranularity",
         "label": "聚合窗口",
-        "description": "数据聚合窗口，默认5，单位分钟。",
+        "description": "数据聚合窗口，默认300，单位秒。",
         "type": "int",
         "optional": "true",
-        "defaultValue": 5
+        "defaultValue": 300
       },
       {
         "name": "customAccidentalParams",
         "label": "自定义偶发配置",
-        "description": "自定义偶发配置，{id: {'acci_day': xx, 'acci_count_thresh': xx, 'acci_occu_thresh': xx}}。",
-        "type": "dict",
+        "description": "自定义偶发配置，{template_id: {'accidentalEnable': xx, 'accidentalDay': xx, 'accidentalThreshold': xx, 'accidentalMaxLog': xx}}。",
+        "type": "map",
         "optional": "false"
       },
       {
         "name": "generalAccidentalParams",
         "label": "通用偶发配置",
-        "description": "通用偶发配置，{'acci_day': xx, 'acci_count_thresh': xx, 'acci_occu_thresh': xx}。",
-        "type": "dict",
+        "description": "通用偶发配置，{'accidentalEnable': xx, 'accidentalDay': xx, 'accidentalThreshold': xx, 'accidentalMaxLog': xx}。",
+        "type": "map",
         "optional": "false"
       },
       {

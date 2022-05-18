@@ -7,7 +7,7 @@ class Train(object):
 
     @staticmethod
     def from_map(conf_dict):
-        agg = conf_dict.get("agg", 5)
+        windowGranularity = conf_dict.get("windowGranularity", 300)
         customAccidentalParams = conf_dict.get("customAccidentalParams")
         generalAccidentalParams = conf_dict.get("generalAccidentalParams")
         rolling_hours = conf_dict.get("rolling_hours", 12)
@@ -15,14 +15,15 @@ class Train(object):
         his_window = conf_dict.get("his_window", 15)
         acc_thresh = conf_dict.get("acc_thresh", 0.5)
 
-        train = Train(agg=agg, customAccidentalParams=customAccidentalParams, generalAccidentalParams=generalAccidentalParams,
-                      rolling_hours=rolling_hours, rolling_percent=rolling_percent, his_window=his_window, acc_thresh=acc_thresh)
+        train = Train(windowGranularity=windowGranularity, customAccidentalParams=customAccidentalParams,
+                      generalAccidentalParams=generalAccidentalParams, rolling_hours=rolling_hours,
+                      rolling_percent=rolling_percent, his_window=his_window, acc_thresh=acc_thresh)
 
         return train
 
-    def __init__(self, agg, customAccidentalParams, generalAccidentalParams, rolling_hours=12, rolling_percent=95,
-                 his_window=15, acc_thresh=0.5):
-        self.agg = agg
+    def __init__(self, customAccidentalParams, generalAccidentalParams, windowGranularity=300, rolling_hours=12,
+                 rolling_percent=95, his_window=15, acc_thresh=0.5):
+        self.windowGranularity = windowGranularity
         self.customAccidentalParams = customAccidentalParams   # 自定义偶发配置
         self.generalAccidentalParams = generalAccidentalParams   # 通用偶发配置
         self.rolling_hours = rolling_hours  # 判断稀疏性时滑动窗口大小，单位小时
@@ -30,7 +31,7 @@ class Train(object):
         self.his_window = his_window
         self.acc_thresh = acc_thresh
 
-        self.list_len_one_hour = int(60 / self.agg)  # 一小时有多少个点
+        self.list_len_one_hour = int(3600 / self.windowGranularity)  # 一小时有多少个点
 
     # 判断是否稀疏
     def sparse(self, history_value):
@@ -56,12 +57,15 @@ class Train(object):
             return False, None, None
 
     # 判断是否偶发
-    def cal_is_accidental(self, tem_id, count, total_count):
-        acci_count_thresh = self.customAccidentalParams[tem_id]['acci_count_thresh'] if tem_id in self.customAccidentalParams else \
-        self.generalAccidentalParams['acci_count_thresh']
-        acci_occu_thresh = self.customAccidentalParams[tem_id]['acci_occu_thresh'] if tem_id in self.customAccidentalParams else \
-        self.generalAccidentalParams['acci_occu_thresh']
-
+    def cal_is_accidental(self, tem_id, enable, count, total_count):
+        if enable:
+            id_ = tem_id.split('_')[-1]
+            acci_count_thresh = self.customAccidentalParams[id_]['accidentalMaxLog'] if id_ in self.customAccidentalParams else \
+            self.generalAccidentalParams['accidentalMaxLog']
+            acci_occu_thresh = self.customAccidentalParams[id_]['accidentalThreshold'] if id_ in self.customAccidentalParams else \
+            self.generalAccidentalParams['accidentalThreshold']
+        else:
+            return False
         if total_count == 0:
             return False
         elif (count < acci_count_thresh) and (count / total_count < 0.01 * acci_occu_thresh):
@@ -70,17 +74,29 @@ class Train(object):
             return False
 
     # 检验稀疏性、周期性
-    def run(self, value_his):
+    def run(self, df):
+        value_his = dict(zip(df['key'], df['value']))
+
         # 计算每个模板、所有模板近acci_day天发生的日志总量
         count_dict = {}
+        enable_dict = {}
         total_count = 0
         for tem_id in value_his:
-            acci_day = self.customAccidentalParams[tem_id]['acci_day'] if tem_id in self.customAccidentalParams else self.generalAccidentalParams['acci_day']
+            id_ = tem_id.split('_')[-1]
+            if id_ in self.customAccidentalParams:
+                acci_enable, acci_day = self.customAccidentalParams[id_]['accidentalEnable'], self.customAccidentalParams[id_]['accidentalDay']
+            else:
+                acci_enable, acci_day = self.generalAccidentalParams['accidentalEnable'], self.generalAccidentalParams['accidentalDay']
+            enable_dict[tem_id] = acci_enable
             count = sum(value_his[tem_id][-self.list_len_one_hour * 24 * acci_day:])
             count_dict[tem_id] = count
             total_count += count
         # 每个模板的规律性和偶发性
-        reg = {}
+        is_sparse_res = []
+        is_period_res = []
+        per_cor_res = []
+        per_coef_res = []
+        is_accidental_res = []
         for tem_id in value_his:
             history_value = value_his[tem_id]
             if len(history_value) > self.list_len_one_hour * 24:
@@ -88,7 +104,16 @@ class Train(object):
                 is_period, per_cor, per_coef = self.period(history_value)
             else:
                 is_sparse, is_period, per_cor, per_coef = False, False, None, None
-            is_accidental = self.cal_is_accidental(tem_id, count_dict[tem_id], total_count)
-            reg[tem_id] = {'value_his': value_his[tem_id], 'is_sparse': is_sparse, 'is_period': is_period,
-                           'per_cor': per_cor, 'per_coef': per_coef, 'is_accidental': is_accidental}
-        return reg
+            is_accidental = self.cal_is_accidental(tem_id, enable_dict[tem_id], count_dict[tem_id], total_count)
+            is_sparse_res.append(is_sparse)
+            is_period_res.append(is_period)
+            per_cor_res.append(per_cor)
+            per_coef_res.append(per_coef)
+            is_accidental_res.append(is_accidental)
+        df['is_sparse'] = is_sparse_res
+        df['is_period'] = is_period_res
+        df['per_cor'] = per_cor_res
+        df['per_coef'] = per_coef_res
+        df['is_accidental'] = is_accidental_res
+
+        return df

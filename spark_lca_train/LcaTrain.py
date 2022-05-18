@@ -1,7 +1,7 @@
 from jax_python.aad import AbstractAbnormalDetect
 from spark_lca_train.Train import Train
 
-__version__="2.1"
+__version__="2.0"
 
 
 class LcaTrain(AbstractAbnormalDetect):
@@ -17,13 +17,15 @@ class LcaTrain(AbstractAbnormalDetect):
 		self.train = Train.from_map(config)
 		self.config = config
 
-	def transform(self, value_his):   # TODO
-		result = self.train.run(value_his)
+	def transform(self, *df):
+		df = df[0]
+
+		result = self.train.run(df)
 		return result
 
-	def fields(self):   # TODO
-		return [('pre_value', 'float'), ('upper', 'float'), ('lower', 'float'),
-				('anomaly', 'int'), ('abnormality', 'int')]
+	def fields(self):
+		return [('is_sparse', 'bool'), ('is_period', 'bool'), ('per_cor', 'int'),
+				('per_coef', 'float'), ('is_accidental', 'bool')]
 
 	def mode_append(self):
 		return True
